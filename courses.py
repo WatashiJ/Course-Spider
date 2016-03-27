@@ -56,86 +56,97 @@ class DalCourse:
 				lab.weekdays[int((i - 13)/2)] = True
 		self.Labs.append(lab)
 
-
-subjects = ["CSCI"]
-pages = ["1", "21"]
-for subject in subjects:
-	for page in pages:
-		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201630&s_subj=" + subject + "&s_numb=&n=" + page + "&s_district=All"
-		data = urllib.request.urlopen(url).read().decode('UTF-8')
-		pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
-		courseSource = re.finditer(pattern, data)
-		courses = set()
-		for each in courseSource:
-			soup = BeautifulSoup(each.group(),"html.parser")
-			course = DalCourse()
-			#print (soup.b.string) #Course title
-			course.title = soup.b.string
-			#print (soup.span.text)# Course date
-			if "-" in soup.span.text:
-				course.date = soup.span.text
-			else:
-				course.date = soup.contents[2].span.text
-			#print (soup.a['href'])# Course web
-			course.link = soup.a['href']
-			#print (soup.tr.contents[3].string)# Register ID
-			course.registerID = int(soup.tr.contents[3].string)
-			#print (soup.tr.contents[7].string)# Course Type
-			course.courseType = soup.tr.contents[7].string
-			#print (soup.tr.contents[9].string)# Credit
-			course.credit = int(soup.tr.contents[9].string)
-			#soup.tr.contents[13].string -- soup.tr.contents[21].string are weekdays
-			#If empty, compare with '\xa0'
-			#print (soup.tr.contents[23].string)# Time
-			course.time = soup.tr.contents[23].string
-			#print (soup.tr.contents[25].string)# Address
-			course.address = soup.tr.contents[25].string
-			#print (soup.tr.contents[27].string)# MAX
-			if soup.tr.contents[27].string != "OPEN":
-				course.maxStudent = int(soup.tr.contents[27].string)
-			else:
-				course.maxStudent = 9999
-			#print (soup.tr.contents[29].string)# Current 
-			course.current = int(soup.tr.contents[29].string)
-			#print (soup.tr.contents[31].string)# Available
-			course.available = int(soup.tr.contents[31].string)
-			#print (soup.tr.contents[33].string)# WList
-			if soup.tr.contents[33].string != "\xa0":
-				course.wList = int(soup.tr.contents[33].string)
-			else:
-				course.wList = 0
-			#print (soup.tr.contents[35].font.string)# %Full
-			course.percentage = soup.tr.contents[35].font.string.split('\n')[0]
-			try:
-				if ("\n" in soup.contents[7].text):
-					#print (soup.contents[7].text.split('\n')[1])# Prof
-					course.professor = soup.contents[7].text.split('\n')[1]
-				else:
-					course.professor = "Staff"
-			except:
-				#print (soup.tr.contents[37].text.split('\n')[1])# Prof
-				if ('\n' in soup.tr.contents[37].text):
-					course.professor = soup.tr.contents[37].text.split('\n')[1]
-				# else:
-					course.professor = soup.tr.contents[37].text
-			for i in range(13,22):
-				if soup.tr.contents[i].string != "\xa0" and soup.tr.contents[i] != "\n":
-					course.weekdays[int((i - 13)/2)] = True
-			labIndex = 9
-			while True:
+class courseSpider:
+	def __init__(self, subject):
+		self.subject = subject
+		self.courses = set()
+		self.data = ""
+		self.url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201610,201620&s_crn=&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
+		data = self.gatherData(self.url)
+		self.pages = []
+		pattern = re.compile('^(<center>Page\s*<b>1<\/b>\s*)(.*\s*?)*?<\/center>$', re.M)
+		result = re.search(pattern, data)
+		if result is None:
+			self.pages = ["1","21"]
+			return
+		else:
+			soup = BeautifulSoup(result.group(), "html.parser")
+			print(soup.contents[0])
+			for each in soup.contents[0].contents:
 				try:
-					course.setLabs(soup.contents[labIndex].contents)
-					labIndex += 9
-				except IndexError:
-					break
-				except AttributeError:
-					break
-			courses.add(course)
+					print(each.attrs['href'])
+					self.pages.append(each.attrs['href'])
+				except:
+					pass
 
-# x = courses.pop()
+
+	def gatherData(self, url):
+		return urllib.request.urlopen(url).read().decode('UTF-8')
+
+	def spider(self):
+		for page in self.pages:
+			url = "https://dalonline.dal.ca/PROD/" + page
+			data = self.gatherData(url)
+			pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
+			courseSource = re.finditer(pattern, data)
+			for each in courseSource:
+				course = self.informationParse(each)
+				self.courses.add(course)
+
+	def informationParse(self, each):
+		soup = BeautifulSoup(each.group(),"html.parser")
+		course = DalCourse()
+		course.title = soup.b.string
+		if "-" in soup.span.text:
+			course.date = soup.span.text
+		else:
+			course.date = soup.contents[2].span.text 
+		course.link = soup.a['href']
+		course.registerID = int(soup.tr.contents[3].string)
+		course.courseType = soup.tr.contents[7].string
+		course.credit = int(soup.tr.contents[9].string)
+		course.time = soup.tr.contents[23].contents[0]
+		course.address = soup.tr.contents[25].contents[0]
+		if soup.tr.contents[27].string != "OPEN":
+			course.maxStudent = int(soup.tr.contents[27].string)
+		else:
+			course.maxStudent = 9999
+		course.current = int(soup.tr.contents[29].string)
+		course.available = int(soup.tr.contents[31].string)
+		if soup.tr.contents[33].string != "\xa0":
+			course.wList = int(soup.tr.contents[33].string)
+		else:
+			course.wList = 0
+		course.percentage = soup.tr.contents[35].font.string.split('\n')[0]
+		try:
+			if ("\n" in soup.contents[7].text):
+				course.professor = soup.contents[7].text.split('\n')[1]
+			else:
+				course.professor = "Staff"
+		except:
+			if ('\n' in soup.tr.contents[37].text):
+				course.professor = soup.tr.contents[37].text.split('\n')[1]
+			else:
+				course.professor = soup.tr.contents[37].text
+		for i in range(13,22):
+			if soup.tr.contents[i].string != "\xa0" and soup.tr.contents[i] != "\n":
+				course.weekdays[int((i - 13)/2)] = True
+		labIndex = 9
+		while True:
+			try:
+				course.setLabs(soup.contents[labIndex].contents)
+				labIndex += 9
+			except IndexError:
+				break
+			except AttributeError:
+				break
+		return course
+
+cs = courseSpider("CSCI")
+cs.spider()
 
 f = open("/Users/Cheng/Desktop/course", "w")
-for x in courses:
+for x in cs.courses:
 	f.write("Title: " + x.title)
 	f.write("Date:" + x.date)
 	f.write("Link: " + x.link)
@@ -172,4 +183,4 @@ for x in courses:
 	print(x.getWeekDays())
 	print("Labs: ")
 	print(x.Labs)
-	# print(x.Labs[0].title)
+# 	# print(x.Labs[0].title)
