@@ -61,9 +61,12 @@ class courseSpider:
 		self.subject = subject
 		self.courses = set()
 		self.data = ""
-		self.url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201610,201620&s_crn=&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
-		data = self.gatherData(self.url)
 		self.pages = []
+		self.gatherPages()
+		
+	def gatherPages(self):
+		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201610,201620&s_crn=&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
+		data = self.gatherData(url)
 		pattern = re.compile('^(<center>Page\s*<b>1<\/b>\s*)(.*\s*?)*?<\/center>$', re.M)
 		result = re.search(pattern, data)
 		if result is None:
@@ -71,14 +74,11 @@ class courseSpider:
 			return
 		else:
 			soup = BeautifulSoup(result.group(), "html.parser")
-			print(soup.contents[0])
 			for each in soup.contents[0].contents:
 				try:
-					print(each.attrs['href'])
 					self.pages.append(each.attrs['href'])
 				except:
 					pass
-
 
 	def gatherData(self, url):
 		return urllib.request.urlopen(url).read().decode('UTF-8')
