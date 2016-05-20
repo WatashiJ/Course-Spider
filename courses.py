@@ -65,12 +65,12 @@ class courseSpider:
 		self.gatherPages()
 		
 	def gatherPages(self):
-		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201610,201620&s_crn=&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
+		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201710&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
 		data = self.gatherData(url)
 		pattern = re.compile('^(<center>Page\s*<b>1<\/b>\s*)(.*\s*?)*?<\/center>$', re.M)
 		result = re.search(pattern, data)
 		if result is None:
-			self.pages = ["1","21"]
+			self.pages = ["fysktime.P_DisplaySchedule?s_term=201710&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"]
 			return
 		else:
 			soup = BeautifulSoup(result.group(), "html.parser")
@@ -104,7 +104,7 @@ class courseSpider:
 		course.link = soup.a['href']
 		course.registerID = int(soup.tr.contents[3].string)
 		course.courseType = soup.tr.contents[7].string
-		course.credit = int(soup.tr.contents[9].string)
+		course.credit = float(soup.tr.contents[9].string)
 		course.time = soup.tr.contents[23].contents[0]
 		course.address = soup.tr.contents[25].contents[0]
 		if soup.tr.contents[27].string != "OPEN":
@@ -142,30 +142,30 @@ class courseSpider:
 				break
 		return course
 
-cs = courseSpider("CSCI")
+cs = courseSpider("HIST")
 cs.spider()
 
-f = open("/Users/Cheng/Desktop/course", "w")
+# f = open("/Users/Cheng/Desktop/course", "w")
 for x in cs.courses:
-	f.write("Title: " + x.title)
-	f.write("Date:" + x.date)
-	f.write("Link: " + x.link)
-	f.write("RegisterID: " + str(x.registerID))
-	f.write("CourseType: " + x.courseType)
-	f.write("Credit: " + str(x.credit))
-	f.write("Time: " + x.time)
-	f.write("Address: " + x.address)
-	f.write("MAX: " + str(x.maxStudent))
-	f.write("Current: " + str(x.current))
-	f.write("Available: " + str(x.available))
-	f.write("WList: " + str(x.wList))
-	f.write("Percentage: " + x.percentage)
-	f.write("weekdays: ")
-	f.write(x.getWeekDays())
-	f.write("Labs: ")
-	# f.write(x.Labs)
-	f.write("\n")
-	f.flush()
+	# f.write("Title: " + x.title)
+	# f.write("Date:" + x.date)
+	# f.write("Link: " + x.link)
+	# f.write("RegisterID: " + str(x.registerID))
+	# f.write("CourseType: " + x.courseType)
+	# f.write("Credit: " + str(x.credit))
+	# f.write("Time: " + x.time)
+	# f.write("Address: " + x.address)
+	# f.write("MAX: " + str(x.maxStudent))
+	# f.write("Current: " + str(x.current))
+	# f.write("Available: " + str(x.available))
+	# f.write("WList: " + str(x.wList))
+	# f.write("Percentage: " + x.percentage)
+	# f.write("weekdays: ")
+	# f.write(x.getWeekDays())
+	# f.write("Labs: ")
+	# # f.write(x.Labs)
+	# f.write("\n")
+	# f.flush()
 	print("Title: " + x.title)
 	print("Date:" + x.date)
 	print("Link: " + x.link)
