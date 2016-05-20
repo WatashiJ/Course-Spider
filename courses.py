@@ -57,15 +57,15 @@ class DalCourse:
 		self.Labs.append(lab)
 
 class courseSpider:
-	def __init__(self, subject):
-		self.subject = subject
+	def __init__(self):
 		self.courses = set()
 		self.data = ""
 		self.pages = []
-		self.gatherPages()
+		self.gatherTerms()
+		self.gatherSubject()
 		
-	def gatherPages(self):
-		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=201710&s_subj=" + self.subject + "&s_numb=&n=1&s_district=All"
+	def gatherPages(self, subject = "CSCI", term = "201710"):
+		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
 		data = self.gatherData(url)
 		pattern = re.compile('^(<center>Page\s*<b>1<\/b>\s*)(.*\s*?)*?<\/center>$', re.M)
 		result = re.search(pattern, data)
@@ -80,10 +80,42 @@ class courseSpider:
 				except:
 					pass
 
+	def gatherTerms(self, subject = "CSCI", term = "201710"):
+		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
+		if self.data == "":
+			self.data = self.gatherData(url)
+		pattern = re.compile('Term-\s*?(.*?\s)*?<\/', re.M)
+		result = re.search(pattern, self.data)
+		soup = BeautifulSoup(result.group(), "html.parser")
+		titles = soup.option.text.split("\n")
+		current = soup.option
+		values = []
+		for _ in range(0, len(titles) - 1):
+			values.append(current["value"])
+			current = current.option
+		self.terms = dict(zip(titles,values))
+
+	def gatherSubject(self, subject = "CSCI", term = "201710"):
+		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
+		if self.data == "":
+			self.data = self.gatherData(url)
+		pattern = re.compile('Subject-\s*?(.*?\s)*?<\/', re.M)
+		result = re.search(pattern, self.data)
+		soup = BeautifulSoup(result.group(), "html.parser")
+		titles = soup.option.text.split("\n")
+		current = soup.option
+		values = []
+		for _ in range(0, len(titles) - 1):
+			values.append(current["value"])
+			current = current.option
+		self.subjects = dict(zip(titles,values))
+
 	def gatherData(self, url):
 		return urllib.request.urlopen(url).read().decode('UTF-8')
 
-	def spider(self):
+	def spider(self, subject, term):
+		self.subject = subject
+		self.gatherPages(subject = subject, term = term)
 		for page in self.pages:
 			url = "https://dalonline.dal.ca/PROD/" + page
 			data = self.gatherData(url)
@@ -142,8 +174,12 @@ class courseSpider:
 				break
 		return course
 
-cs = courseSpider("HIST")
-cs.spider()
+cs = courseSpider()
+subject = cs.subjects['Music']
+print(subject)
+term = cs.terms['2016/2017 Winter']
+print(term)
+cs.spider(subject = subject, term = term)
 
 # f = open("/Users/Cheng/Desktop/course", "w")
 for x in cs.courses:
