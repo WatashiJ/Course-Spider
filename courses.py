@@ -57,6 +57,30 @@ class DalCourse:
 				lab.weekdays[int((i - 13)/2)] = True
 		self.Labs.append(lab)
 
+	def toDict(self):
+		courseDict = dict()
+		courseDict["title"] = self.title
+		courseDict["date"] = self.date
+		courseDict["link"] = self.link
+		courseDict["registerID"] = self.registerID
+		courseDict["courseType"] = self.courseType
+		courseDict["credit"] = self.credit
+		courseDict["time"] = self.time
+		courseDict["address"] = self.address
+		courseDict["maxStudent"] = self.maxStudent
+		courseDict["current"] = self.current
+		courseDict["available"] = self.available
+		courseDict["wList"] = self.wList
+		courseDict["percentage"] = self.percentage
+		courseDict["weekdays"] = self.weekdays
+		if len(self.Labs) != 0:
+			courseDict["Labs"] = []
+			for eachLab in self.Labs:
+				courseDict["Labs"].append(eachLab.toDict())
+		else:
+			courseDict["Labs"] = []
+		return courseDict
+
 class courseSpider:
 	def __init__(self):
 		self.courses = set()
@@ -131,9 +155,11 @@ class courseSpider:
 		course = DalCourse()
 		course.title = soup.b.string
 		if "-" in soup.span.text:
-			course.date = soup.span.text
+			date = soup.span.text.split("\n")
+			course.date = date[0] + date[2]
 		else:
-			course.date = soup.contents[2].span.text 
+			date = soup.contents[2].span.text.split("\n")
+			course.date = date[0] + date[2]
 		course.link = soup.a['href']
 		course.registerID = int(soup.tr.contents[3].string)
 		course.courseType = soup.tr.contents[7].string
@@ -181,46 +207,8 @@ print(subject)
 term = cs.terms['2016/2017 Winter']
 print(term)
 cs.spider(subject = subject, term = term)
-course = cs.courses.pop()
-s = json.dumps(course.__dict__)
-print(s)
-
-# f = open("/Users/Cheng/Desktop/course", "w")
-# for x in cs.courses:
-# 	# f.write("Title: " + x.title)
-# 	# f.write("Date:" + x.date)
-# 	# f.write("Link: " + x.link)
-# 	# f.write("RegisterID: " + str(x.registerID))
-# 	# f.write("CourseType: " + x.courseType)
-# 	# f.write("Credit: " + str(x.credit))
-# 	# f.write("Time: " + x.time)
-# 	# f.write("Address: " + x.address)
-# 	# f.write("MAX: " + str(x.maxStudent))
-# 	# f.write("Current: " + str(x.current))
-# 	# f.write("Available: " + str(x.available))
-# 	# f.write("WList: " + str(x.wList))
-# 	# f.write("Percentage: " + x.percentage)
-# 	# f.write("weekdays: ")
-# 	# f.write(x.getWeekDays())
-# 	# f.write("Labs: ")
-# 	# # f.write(x.Labs)
-# 	# f.write("\n")
-# 	# f.flush()
-# 	print("Title: " + x.title)
-# 	print("Date:" + x.date)
-# 	print("Link: " + x.link)
-# 	print("RegisterID: " + str(x.registerID))
-# 	print("CourseType: " + x.courseType)
-# 	print("Credit: " + str(x.credit))
-# 	print("Time: " + x.time)
-# 	print("Address: " + x.address)
-# 	print("MAX: " + str(x.maxStudent))
-# 	print("Current: " + str(x.current))
-# 	print("Available: " + str(x.available))
-# 	print("WList: " + str(x.wList))
-# 	print("Percentage: " + x.percentage)
-# 	print("weekdays: ")
-# 	print(x.getWeekDays())
-# 	print("Labs: ")
-# 	print(x.Labs)
-# 	# print(x.Labs[0].title)
+course = []
+for each in cs.courses:
+	course.append(each.toDict())
+courses = {"courses":course}
+print(json.dumps(courses))
