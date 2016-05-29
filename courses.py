@@ -20,6 +20,7 @@ class DalCourse:
 		self.available = "0"
 		self.wList = "0"
 		self.percentage = "%0"
+		self.professor = ""
 		self.weekdays = [False, False, False, False, False]
 		self.Labs = []
 
@@ -42,7 +43,7 @@ class DalCourse:
 		lab.courseType = info[7].string
 		lab.credit = 0
 		lab.time = info[23].string
-		lab.address = info[25].string
+		lab.address = info[25].string.strip()
 		lab.maxStudent = info[27].text
 		lab.current = info[29].text
 		lab.available = info[31].text
@@ -106,8 +107,7 @@ class courseSpider:
 
 	def gatherTerms(self, subject = "CSCI", term = "201710"):
 		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
-		if courseSpider.data == "":
-			courseSpider.data = self.gatherData(url)
+		courseSpider.data = self.gatherData(url)
 		pattern = re.compile('Term-\s*?(.*?\s)*?<\/', re.M)
 		result = re.search(pattern, courseSpider.data)
 		soup = BeautifulSoup(result.group(), "html.parser")
@@ -152,6 +152,9 @@ class courseSpider:
 		soup = BeautifulSoup(each.group(),"html.parser")
 		course = DalCourse()
 		course.title = soup.b.string
+		if course.title == "CSCI 2110 Computer Science III":
+			print("1" + soup.contents[7].text)
+			print("2" + soup.contents[7].text.split('\n')[1])
 		if "-" in soup.span.text:
 			course.date = soup.span.text.split(": ")[1]
 		else:
@@ -174,7 +177,7 @@ class courseSpider:
 			course.professor = "Staff"
 			return course
 		course.time = soup.tr.contents[23].contents[0]
-		course.address = soup.tr.contents[25].contents[0]
+		course.address = soup.tr.contents[25].contents[0].strip()
 		if soup.tr.contents[27].text != "OPEN":
 			course.maxStudent = soup.tr.contents[27].text
 		else:
@@ -187,15 +190,12 @@ class courseSpider:
 			course.wList = 0
 		course.percentage = soup.tr.contents[35].font.string.split('\n')[0].replace(" ", "")
 		try:
-			if ("\n" in soup.contents[7].text):
-				course.professor = soup.contents[7].text.split('\n')[1]
-			else:
-				course.professor = "Staff"
-		except:
 			if ('\n' in soup.tr.contents[37].text):
 				course.professor = soup.tr.contents[37].text.split('\n')[1]
-			else:
-				course.professor = soup.tr.contents[37].text
+			elif ("\n" in soup.contents[7].text):
+				course.professor = soup.contents[7].text.split('\n')[1]
+		except:
+			course.professor = "Staff"
 		for i in range(13,22):
 			if soup.tr.contents[i].string != "\xa0" and soup.tr.contents[i] != "\n":
 				course.weekdays[int((i - 13)/2)] = True
@@ -213,13 +213,19 @@ class courseSpider:
 
 cs = courseSpider()
 cs.gatherTerms()
-term = cs.terms['2015/2016 Summer']
+term = cs.terms['2016/2017 Fall']
 print(term)
 cs.gatherSubject(term = term)
-subject = cs.subjects['Chemical Engineering']
+subject = cs.subjects['Computer Science']
 print(subject)
 cs.spider(subject = subject, term = term)
-print(cs.courses)
+file = open("/Users/Cheng/Desktop/courses", "w")
+for each in cs.courses:
+	file.write(each.title + " ")
+	file.write(each.professor)
+	file.write("\n")
+file.close()
+# print(cs.courses)
 # course = []
 # for each in cs.courses:
 # 	course.append(each.toDict())
