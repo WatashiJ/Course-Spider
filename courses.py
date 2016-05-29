@@ -10,7 +10,7 @@ class DalCourse:
 		self.title = "title"
 		self.date = "date"
 		self.link = "web"
-		self.registerID = 0
+		self.registerID = "0"
 		self.courseType = "Lec"
 		self.credit = 0
 		self.time = "NONE"
@@ -39,7 +39,7 @@ class DalCourse:
 		lab.title = self.title + " " + info[5].string
 		lab.date = self.date
 		lab.link = ""
-		lab.registerID = int(info[3].string)
+		lab.registerID = info[3].string
 		lab.courseType = info[7].string
 		lab.credit = 0
 		lab.time = info[23].string
@@ -145,22 +145,19 @@ class courseSpider:
 			pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
 			courseSource = re.finditer(pattern, data)
 			for each in courseSource:
-				course = self.informationParse(each)
-				self.courses.add(course)
+				courses = self.informationParse(each)
+				self.courses = self.courses | courses
 
 	def informationParse(self, each):
 		soup = BeautifulSoup(each.group(),"html.parser")
 		course = DalCourse()
 		course.title = soup.b.string
-		if course.title == "CSCI 2110 Computer Science III":
-			print("1" + soup.contents[7].text)
-			print("2" + soup.contents[7].text.split('\n')[1])
 		if "-" in soup.span.text:
 			course.date = soup.span.text.split(": ")[1]
 		else:
 			course.date = soup.contents[2].span.text.split(": ")[1]
 		course.link = soup.a['href']
-		course.registerID = int(soup.tr.contents[3].string)
+		course.registerID = soup.tr.contents[3].string
 		course.courseType = soup.tr.contents[7].string
 		course.credit = float(soup.tr.contents[9].string)
 		if soup.tr.contents[13].string == "C/D":
@@ -194,29 +191,76 @@ class courseSpider:
 				course.professor = soup.tr.contents[37].text.split('\n')[1]
 			elif ("\n" in soup.contents[7].text):
 				course.professor = soup.contents[7].text.split('\n')[1]
+			else:
+				course.professor = soup.contents[7].text
 		except:
 			course.professor = "Staff"
 		for i in range(13,22):
 			if soup.tr.contents[i].string != "\xa0" and soup.tr.contents[i] != "\n":
 				course.weekdays[int((i - 13)/2)] = True
 		labIndex = 9
+		multipleCourse = set()
+		multipleCourse.add(course)
+		for labIndex in range(8, len(soup.contents)):
+			info = soup.contents[labIndex]
+			try:
+				courseType = info.contents[7].string
+				if courseType == "Lec":
+					newCourse = self.multiLec(info = soup.contents, index = labIndex, originalCourse = course)
+					multipleCourse.add(newCourse)
+				elif courseType == "Lab" or courseType == "Tut":
+					break			
+			except IndexError:
+				continue
+			except AttributeError:
+				continue
 		while True:
 			try:
-				course.setLabs(soup.contents[labIndex].contents)
-				labIndex += 9
+				labInfo = soup.contents[labIndex].contents
+				if labInfo.td.text == 'NOTE':
+					labIndex += 2
+					continue
+				else:
+					labIndex += 9
+				for each in multipleCourse:
+					each.setLabs(labInfo)
 			except IndexError:
 				break
 			except AttributeError:
 				break
-		return course
+		return multipleCourse
 
+	def multiLec(self, info, index, originalCourse):
+		course = DalCourse()
+		course.title = originalCourse.title
+		course.date = originalCourse.date
+		course.link = originalCourse.link
+		course.courseType = info[index].contents[7].string
+		course.registerID = info[index].contents[3].string
+		course.credit = originalCourse.credit
+		course.time = info[index].contents[23].string
+		course.Labs = []
+		course.address = info[index].contents[25].string.strip()
+		course.maxStudent = info[index].contents[27].text
+		course.current = info[index].contents[29].text
+		course.available = info[index].contents[31].text
+		if info[index].contents[33].string != '\xa0':
+			course.wList = info[index].contents[33].string
+		else:
+			course.wList = 0
+		course.percentage = info[index].contents[35].font.string.split('\n')[0].replace(" ", "")
+		course.professor = info[index + 2].contents[0].strip("\n").strip()
+		for i in range(13,22):
+			if info[index].contents[i].string != "\xa0" and info[index].contents[i].string != "\n":
+				course.weekdays[int((i - 13)/2)] = True
+		return course
 
 cs = courseSpider()
 cs.gatherTerms()
 term = cs.terms['2016/2017 Fall']
 print(term)
 cs.gatherSubject(term = term)
-subject = cs.subjects['Computer Science']
+subject = cs.subjects['Mathematics']
 print(subject)
 cs.spider(subject = subject, term = term)
 file = open("/Users/Cheng/Desktop/courses", "w")
