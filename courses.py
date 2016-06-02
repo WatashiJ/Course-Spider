@@ -35,6 +35,7 @@ class DalCourse:
 
 	def setLabs(self, info):
 		self.Labs = []
+		print("labs")
 		lab = DalCourse()
 		lab.title = self.title + " " + info[5].string
 		lab.date = self.date
@@ -76,8 +77,10 @@ class DalCourse:
 		courseDict["weekdays"] = self.weekdays
 		courseDict["professor"] = self.professor
 		if len(self.Labs) != 0:
+			print("Not 0")
 			courseDict["Labs"] = []
 			for eachLab in self.Labs:
+				print(eachLab.toDict())
 				courseDict["Labs"].append(eachLab.toDict())
 		else:
 			courseDict["Labs"] = []
@@ -136,17 +139,24 @@ class courseSpider:
 	def gatherData(self, url):
 		return urllib.request.urlopen(url).read().decode('UTF-8')
 
-	def spider(self, subject, term):
+	def spider(self, subject, term, pageNumber = -1):
 		self.subject = subject
 		self.gatherPages(subject = subject, term = term)
-		for page in self.pages:
-			url = "https://dalonline.dal.ca/PROD/" + page
-			data = self.gatherData(url)
-			pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
-			courseSource = re.finditer(pattern, data)
-			for each in courseSource:
-				courses = self.informationParse(each)
-				self.courses = self.courses | courses
+		if not(pageNumber == -1):
+			if pageNumber < len(self.pages):
+				self.separateCourses(self.pages[pageNumber])
+		else:
+			for page in self.pages:
+				self.separateCourses(page = page)
+
+	def separateCourses(self, page):
+		url = "https://dalonline.dal.ca/PROD/" + page
+		data = self.gatherData(url)
+		pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
+		courseSource = re.finditer(pattern, data)
+		for each in courseSource:
+			courses = self.informationParse(each)
+			self.courses = self.courses | courses
 
 	def informationParse(self, each):
 		soup = BeautifulSoup(each.group(),"html.parser")
@@ -201,33 +211,20 @@ class courseSpider:
 		labIndex = 9
 		multipleCourse = set()
 		multipleCourse.add(course)
-		for labIndex in range(8, len(soup.contents)):
-			info = soup.contents[labIndex]
+		for index in range(8, len(soup.contents)):
+			info = soup.contents[index]
 			try:
 				courseType = info.contents[7].string
 				if courseType == "Lec":
-					newCourse = self.multiLec(info = soup.contents, index = labIndex, originalCourse = course)
+					newCourse = self.multiLec(info = soup.contents, index = index, originalCourse = course)
 					multipleCourse.add(newCourse)
 				elif courseType == "Lab" or courseType == "Tut":
-					break			
+					for each in multipleCourse:
+						each.setLabs(info.contents)			
 			except IndexError:
 				continue
 			except AttributeError:
 				continue
-		while True:
-			try:
-				labInfo = soup.contents[labIndex].contents
-				if labInfo.td.text == 'NOTE':
-					labIndex += 2
-					continue
-				else:
-					labIndex += 9
-				for each in multipleCourse:
-					each.setLabs(labInfo)
-			except IndexError:
-				break
-			except AttributeError:
-				break
 		return multipleCourse
 
 	def multiLec(self, info, index, originalCourse):
@@ -260,14 +257,12 @@ cs.gatherTerms()
 term = cs.terms['2016/2017 Fall']
 print(term)
 cs.gatherSubject(term = term)
-subject = cs.subjects['Mathematics']
+subject = cs.subjects['Computer Science']
 print(subject)
-cs.spider(subject = subject, term = term)
+cs.spider(subject = subject, term = term, pageNumber = 0)
 file = open("/Users/Cheng/Desktop/courses", "w")
 for each in cs.courses:
-	file.write(each.title + " ")
-	file.write(each.professor)
-	file.write("\n")
+	file.write(json.dumps(each.toDict()))
 file.close()
 # print(cs.courses)
 # course = []
