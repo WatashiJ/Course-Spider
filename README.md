@@ -45,7 +45,7 @@ Sample response: {"courses":  {"Labs":[],<br>
             "professor": ""Fleming J. ",<br>
             "registerID": "10701",<br>
             "time": "1635-1725",<br>
-            "title": CSCI 2100 Comm Skills": "Oral/Written",<br>
+            "title": CSCI 2100 Comm Skills: Oral/Written",<br>
             "wList": "15",<br>
             "weekdays": [
                 1,
