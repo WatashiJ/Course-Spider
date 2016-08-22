@@ -13,7 +13,7 @@ This will only be an example of how I learned about Python and Flask<br>
 ## API:
 ### Index page: 
 https://course-spider.herokuapp.com <br>
-It will redirects you here<br>
+It will redirect you here<br>
 <br>
 ### GET all terms:
 https://course-spider.herokuapp.com/api/terms <br>
@@ -45,7 +45,7 @@ Sample response: {"courses":  {"Labs":[],<br>
             "professor": ""Fleming J. ",<br>
             "registerID": "10701",<br>
             "time": "1635-1725",<br>
-            "title": CSCI 2100 Comm Skills": "Oral/Written",<br>
+            "title": CSCI 2100 Comm Skills: Oral/Written",<br>
             "wList": "15",<br>
             "weekdays": [
                 1,
