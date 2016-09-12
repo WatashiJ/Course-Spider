@@ -12,7 +12,7 @@ class courseSpider:
 		
 	def gatherPages(self, subject = "CSCI", term = "201710"):
 		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
-		courseSpider.data = self.gatherData(url)
+		courseSpider.data = self._gatherData(url)
 		pattern = re.compile('^(<center>Page\s*<b>1<\/b>\s*)(.*\s*?)*?<\/center>$', re.M)
 		result = re.search(pattern, courseSpider.data)
 		self.pages = ["fysktime.P_DisplaySchedule?s_term="+ term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"]
@@ -28,7 +28,7 @@ class courseSpider:
 
 	def gatherTerms(self, subject = "CSCI", term = "201710"):
 		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
-		courseSpider.data = self.gatherData(url)
+		courseSpider.data = self._gatherData(url)
 		pattern = re.compile('Term-\s*?(.*?\s)*?<\/', re.M)
 		result = re.search(pattern, courseSpider.data)
 		soup = BeautifulSoup(result.group(), "html.parser")
@@ -42,7 +42,7 @@ class courseSpider:
 
 	def gatherSubject(self, subject = "CSCI", term = "201710"):
 		url = "https://dalonline.dal.ca/PROD/fysktime.P_DisplaySchedule?s_term=" + term + "&s_subj=" + subject + "&s_numb=&n=1&s_district=All"
-		courseSpider.data = self.gatherData(url)
+		courseSpider.data = self._gatherData(url)
 		pattern = re.compile('Subject-\s*?(.*?\s)*?<\/', re.M)
 		result = re.search(pattern, courseSpider.data)
 		soup = BeautifulSoup(result.group(), "html.parser")
@@ -54,7 +54,7 @@ class courseSpider:
 			current = current.option
 		self.subjects = dict(zip(titles,values))
 
-	def gatherData(self, url):
+	def _gatherData(self, url):
 		return urllib.request.urlopen(url).read().decode('UTF-8')
 
 	def spider(self, subject, term, pageNumber = -1):
@@ -63,21 +63,21 @@ class courseSpider:
 		self.totalPage = len(self.pages)
 		if not(pageNumber == -1):
 			if pageNumber < len(self.pages):
-				self.separateCourses(self.pages[pageNumber])
+				self._separateCourses(self.pages[pageNumber])
 		else:
 			for page in self.pages:
-				self.separateCourses(page = page)
+				self._separateCourses(page = page)
 
-	def separateCourses(self, page):
+	def _separateCourses(self, page):
 		url = "https://dalonline.dal.ca/PROD/" + page
-		data = self.gatherData(url)
+		data = self._gatherData(url)
 		pattern = re.compile('^<TD.*?COLSPAN="15" CLASS="detthdr">\s*?(.*\s?)*?<tr.*valign=', re.M)
 		courseSource = re.finditer(pattern, data)
 		for each in courseSource:
-			courses = self.informationParse(each)
+			courses = self._informationParse(each)
 			self.courses = self.courses | courses
 
-	def informationParse(self, each):
+	def _informationParse(self, each):
 		soup = BeautifulSoup(each.group(),"html.parser")
 		course = DalCourse()
 		course.title = soup.b.string
@@ -135,7 +135,7 @@ class courseSpider:
 			try:
 				courseType = info.contents[7].string
 				if courseType == "Lec":
-					newCourse = self.multiLec(info = soup.contents, index = index, originalCourse = course)
+					newCourse = self._multiLec(info = soup.contents, index = index, originalCourse = course)
 					multipleCourse.add(newCourse)
 				elif courseType == "Lab" or courseType == "Tut":
 					print(course.title)
@@ -147,7 +147,7 @@ class courseSpider:
 				continue
 		return multipleCourse
 
-	def multiLec(self, info, index, originalCourse):
+	def _multiLec(self, info, index, originalCourse):
 		course = DalCourse()
 		course.title = originalCourse.title
 		course.date = originalCourse.date
