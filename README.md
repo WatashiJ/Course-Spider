@@ -1,6 +1,6 @@
 # Course-Spider
 
-## Owner: Yaxin Cheng
+## A better tool is built, visit [course-checker](https://github.com/YaxinCheng/ScriptTools/tree/master/Course-Checker)
 
 ## Since: Mar 26, 2016
 
